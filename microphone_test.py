@@ -1,20 +1,18 @@
-from faster_whisper import WhisperModel
-import sounddevice as sd
-import numpy as np
+from vosk import Model, KaldiRecognizer
+import pyaudio
 
-model = WhisperModel("base", device="cuda", compute_type="float16")
-buffer = np.zeros((0,))
-
-def callback(indata, frames, time, status):
-    global buffer
-    buffer = np.concatenate([buffer, indata[:,0]])
-
-sd.InputStream(channels=1, samplerate=16000, callback=callback).start()
+model = Model("vosk-model-ru-0.42")
+rec = KaldiRecognizer(model, 16000)
+p = pyaudio.PyAudio()
+print("Available input devices:\n")
+for i in range(p.get_device_count()):
+    info = p.get_device_info_by_index(i)
+    if info["maxInputChannels"] > 0:
+        print(f"Index {i}: {info['name']} (Channels: {info['maxInputChannels']})")
+stream = p.open(format=pyaudio.paInt16, channels=1, rate=16000, input=True, frames_per_buffer=8000, input_device_index=4)
+stream.start_stream()
 
 while True:
-    if len(buffer) >= 16000*3:
-        segment = buffer[:16000*3]
-        buffer = buffer[16000*1:]  # сдвиг
-        segments, _ = model.transcribe(segment, batch_size=1)
-        for seg in segments:
-            print(seg.text, end="", flush=True)
+    data = stream.read(800)
+    if rec.AcceptWaveform(data):
+        print("You said:", rec.Result())

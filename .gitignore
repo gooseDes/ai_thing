@@ -192,3 +192,11 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# My
+vosk-model-ru-0.42
+vosk-model-ru-0.42/*
+vosk-model-ru-0.42.zip
+vosk-model-small-ru-0.22
+vosk-model-small-ru-0.22/*
+vosk-model-small-ru-0.22.zip
