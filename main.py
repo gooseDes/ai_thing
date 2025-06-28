@@ -3,6 +3,7 @@ import pyaudio
 import requests
 import json
 import threading
+import subprocess
 
 url = "http://localhost:11434/api/generate"
 
@@ -10,9 +11,11 @@ headers = {
     "Content-Type": "application/json"
 }
 
+VOICE_MODE = False
+
 AI_SETTINGS = '''
-You are a kind friend for a user. Answer only in Russian.
-Now you need to answer to user.
+You are a kind voice assistant for a user. Answer only in Russian.
+Now you need to answer/make what user said. If you think that you need to execute some linux bash command(for example open some app), you can do it by writing "CMD: <command>" in the end of your message. You can execute only linux bash commands.
 Here's what user said:
 '''
 
@@ -37,11 +40,24 @@ def ask_ai(text: str):
 
 def respond_async(text):
     def worker():
-        print("Answer:", ask_ai(AI_SETTINGS + text))
-    threading.Thread(target=worker).start()
+        res = ask_ai(AI_SETTINGS + text)
+        print("Answer:", res)
+        if 'cmd:' in res.lower():
+            cmd = res.split("CMD:")[1].strip()
+            print(f"Executing command: {cmd + ' & disown'}")
+            process = subprocess.run(cmd, shell=True)
+    thread = threading.Thread(target=worker)
+    thread.start()
+    return thread
 
 while True:
-    data = stream.read(4000)
+    if not VOICE_MODE:
+        text = input("You: ")
+        if text.lower() == "exit":
+            break
+        respond_async(text).join()
+        continue
+    data = stream.read(2048)
     if rec.AcceptWaveform(data):
         res = json.loads(rec.Result())['text']
         if not res:
